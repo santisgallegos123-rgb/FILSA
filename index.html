@@ -375,18 +375,40 @@ const TABLA_MEDIDAS = {
     "F23": "18\" X 18\" X 13\"", "F24": "24 1/2\" X 24 1/2\" X 9 1/2\"", "F25": "6 1/4\" X 6 1/4\" X 23 1/2\" LTC-200"
 };
 
+const DATOS_EXCEL = {
+    // ID: [Stock, Min, Max]
+    "1": [52, 20, 40], "2": [38, 10, 40], "3": [14, 20, 50], "4": [19, 10, 40], "5": [17, 10, 40],
+    "6": [14, 10, 50], "7": [18, 10, 30], "8": [30, 10, 40], "9": [65, 10, 50], "10": [52, 10, 50],
+    "11": [45, 20, 50], "12": [35, 10, 50], "13": [48, 10, 40], "14": [22, 10, 40], "15": [40, 20, 50],
+    "16": [22, 20, 50], "17": [18, 20, 50], "18": [65, 20, 50], "19": [45, 15, 40], "20": [35, 10, 50],
+    "21": [52, 10, 50], "22": [45, 10, 40], "23": [40, 10, 50], "24": [27, 10, 50], "25": [14, 5, 50],
+    "26": [30, 5, 50], "27": [1, 5, 30], "28": [22, 5, 50], "29": [48, 20, 50], "30": [39, 20, 50],
+    "31": [29, 10, 50], "32": [51, 20, 50], "33": [22, 10, 50], "34": [45, 10, 50], "35": [10, 10, 50],
+    "36": [35, 10, 50], "37": [45, 15, 40], "38": [60, 15, 40], "39": [23, 15, 40], "40": [18, 15, 40],
+    "41": [25, 15, 40], "42": [36, 15, 40], "43": [22, 15, 30],
+    "F1": [45, 10, 30], "F2": [30, 10, 30], "F3": [10, 10, 20], "F4": [24, 5, 20], "F5": [36, 10, 30],
+    "F6": [52, 10, 30], "F7": [45, 15, 25], "F8": [36, 15, 25], "F9": [42, 15, 25], "F10": [38, 15, 25],
+    "F11": [15, 15, 25], "F12": [22, 10, 25], "F13": [26, 10, 25], "F14": [45, 20, 40], "F15": [33, 20, 40],
+    "F16": [22, 20, 40], "F17": [15, 20, 40], "F18": [55, 20, 40], "F19": [42, 5, 20], "F20": [38, 5, 20],
+    "F21": [15, 5, 20], "F22": [18, 15, 30], "F23": [12, 15, 30], "F24": [25, 10, 20], "F25": [33, 20, 40]
+};
+
 function generateDefaults() {
     const temp = [];
-    for(let i=1; i<=42; i++) {
-        temp.push({ id: i.toString(), min: 50, max: 80, stock: 60, medida: TABLA_MEDIDAS[i.toString()] });
+    // Cajas numéricas (incluyendo la 43 detectada en Excel)
+    for(let i=1; i<=43; i++) {
+        const id = i.toString();
+        const [stock, min, max] = DATOS_EXCEL[id] || [0, 50, 80];
+        temp.push({ id, min, max, stock, medida: TABLA_MEDIDAS[id] || "Medida no definida" });
     }
+    // Serie F
     for(let i=1; i<=25; i++) {
-        let idF = `F${i}`;
-        temp.push({ id: idF, min: 50, max: 80, stock: 60, medida: TABLA_MEDIDAS[idF] });
+        const idF = `F${i}`;
+        const [stock, min, max] = DATOS_EXCEL[idF] || [0, 50, 80];
+        temp.push({ id: idF, min, max, stock, medida: TABLA_MEDIDAS[idF] || "Medida no definida" });
     }
     return temp;
 }
-
 function init() {
     db.ref('inventario').on('value', (snapshot) => {
         const data = snapshot.val();
@@ -508,7 +530,7 @@ function descargarPDF() {
     // --- ENCABEZADO ---
     doc.setFontSize(22);
     doc.setTextColor(177, 18, 38);
-    doc.text("FILSA", 14, 20);
+    doc.text("FILTROS Y SERVICIOIS DE MEXICO", 14, 20);
     
     doc.setFontSize(16);
     doc.setTextColor(40, 40, 40);
