@@ -411,6 +411,14 @@
     }
 
     function init() {
+        db.ref('inventario').set(generateDefaults()); 
+
+    db.ref('inventario').on('value', (snapshot) => {
+        const data = snapshot.val();
+        if (data) { inventory = data; } 
+        else { inventory = generateDefaults(); db.ref('inventario').set(inventory); }
+        render();
+    });
         db.ref('inventario').on('value', (snapshot) => {
             const data = snapshot.val();
             if (data && Array.isArray(data)) { 
