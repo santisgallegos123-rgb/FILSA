@@ -10,12 +10,14 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-database-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-auth-compat.js"></script> <style>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-auth-compat.js"></script> 
+    
+    <style>
         :root{
             --red:#b11226;
             --red-dark:#8f0e1f;
             --white:#ffffff;
-            --white:#ffffff;
+            --gray:#f4f4f4;
             --success:#1e8449;
         }
 
@@ -307,7 +309,8 @@
         <h2>Control de Inventario</h2>
         
         <div class="login-field">
-            <label>Correo Electrónico</label> <input type="email" id="user" placeholder="ejemplo@filsa.com">
+            <label>Correo Electrónico</label> 
+            <input type="email" id="user" placeholder="ejemplo@filsa.com">
         </div>
         
         <div class="login-field">
@@ -348,19 +351,36 @@
             <div class="main-layout">
                 <aside class="panel">
                     <h2>Salida de Almacén</h2>
+                    <label>Tipo de Caja</label>
+                    <select id="typeSelectSalida" onchange="updateBoxOptions('Salida')">
+                        <option value="NUM">Numéricas (1-43)</option>
+                        <option value="SERIEF">Serie F (F1-F25)</option>
+                    </select>
+
                     <label>Seleccionar Caja</label>
                     <select id="boxSelect"></select>
+
                     <label>Cantidad a retirar</label>
                     <input type="number" id="qtyInput" value="1" min="1">
+                    
                     <label>Folio o Modelo</label>
                     <input type="text" id="inputReferencia" placeholder="Ingresa folio o modelo">
+                    
                     <button onclick="procesarSalida()" style="background:var(--red); color:white; font-weight:bold; cursor:pointer;">Registrar Salida</button>
 
                     <h2 style="margin-top:40px;">Entrada de Almacén</h2>
+                    <label>Tipo de Caja</label>
+                    <select id="typeSelectEntrada" onchange="updateBoxOptions('Entrada')">
+                        <option value="NUM">Numéricas (1-43)</option>
+                        <option value="SERIEF">Serie F (F1-F25)</option>
+                    </select>
+
                     <label>Seleccionar Caja</label>
                     <select id="boxSelectAdd"></select>
+
                     <label>Cantidad a agregar</label>
                     <input type="number" id="qtyAddInput" value="1" min="1">
+                    
                     <button onclick="procesarEntrada()" style="background:#1e8449; color:white; font-weight:bold; cursor:pointer;">Registrar Entrada</button>
                 </aside>
 
@@ -408,22 +428,24 @@
 
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const auth = firebase.auth(); // MODIFICADO: Instancia de Auth
+    const auth = firebase.auth();
 
     let inventory = [];
     const EMAIL_REQUISICION = "almacenfilsa@gmail.com";
 
-    // --- LÓGICA DE AUTENTICACIÓN (NUEVA) ---
+    // --- LÓGICA DE AUTENTICACIÓN ---
+    
+    // Al cargar la página, forzamos cierre de sesión para que el "Refrescar" mande al inicio
+    window.onload = () => {
+        auth.signOut();
+    };
 
-    // Observador que maneja el cambio de pantalla automáticamente
     auth.onAuthStateChanged((user) => {
         if (user) {
-            // Usuario logueado: Mostramos la App y cargamos datos
             document.getElementById("loginWrapper").style.display = "none";
             document.getElementById("mainApp").style.display = "block";
             init(); 
         } else {
-            // Usuario fuera: Mostramos Login
             document.getElementById("loginWrapper").style.display = "flex";
             document.getElementById("mainApp").style.display = "none";
         }
@@ -433,20 +455,14 @@
         const email = document.getElementById("user").value;
         const pass = document.getElementById("pass").value;
         const errorMsg = document.getElementById("loginError");
-
         if(!email || !pass) { alert("Completa los campos"); return; }
-
-        auth.signInWithEmailAndPassword(email, pass)
-            .catch((error) => {
-                console.error(error);
-                errorMsg.style.display = "block";
-                errorMsg.innerText = "Error: " + error.message;
-            });
+        auth.signInWithEmailAndPassword(email, pass).catch((error) => {
+            errorMsg.style.display = "block";
+            errorMsg.innerText = "Error: Credenciales inválidas";
+        });
     }
 
-    function cerrarSesion() {
-        auth.signOut();
-    }
+    function cerrarSesion() { auth.signOut(); }
 
     // --- LÓGICA DE INVENTARIO ---
 
@@ -487,9 +503,11 @@
     function init() {
         db.ref('inventario').on('value', (snapshot) => {
             const data = snapshot.val();
-            if (data && Array.isArray(data)) { inventory = data; } 
-            else { inventory = generateDefaults(); db.ref('inventario').set(inventory); }
+            inventory = data || generateDefaults();
+            if (!data) db.ref('inventario').set(inventory);
             render();
+            updateBoxOptions('Salida');
+            updateBoxOptions('Entrada');
         });
         db.ref('historial').limitToLast(20).on('value', (snapshot) => { 
             renderHistory(snapshot.val()); 
@@ -499,16 +517,12 @@
     function render() {
         const bodyNum = document.getElementById("bodyNum");
         const bodyF = document.getElementById("bodyF");
-        const selectSalida = document.getElementById("boxSelect");
-        const selectEntrada = document.getElementById("boxSelectAdd");
         const filter = document.getElementById("searchInput").value.toLowerCase();
 
         bodyNum.innerHTML = ""; bodyF.innerHTML = "";
-        selectSalida.innerHTML = ""; selectEntrada.innerHTML = "";
 
-        inventory.forEach((item, index) => {
+        inventory.forEach((item) => {
             if(filter && !item.id.toLowerCase().includes(filter)) return;
-
             const isCritical = item.stock < item.min;
             const row = `
                 <tr>
@@ -517,15 +531,26 @@
                     <td>${item.min} / ${item.max}</td>
                     <td>${isCritical ? `<a class="btn-req" href="mailto:${EMAIL_REQUISICION}?subject=Requisición Caja ${item.id}">Requisición</a>` : `<span style="color:#999; font-size:0.8rem">Óptimo</span>`}</td>
                 </tr>`;
-
             if(item.id.startsWith("F")) { bodyF.innerHTML += row; } 
             else { bodyNum.innerHTML += row; }
+        });
+    }
 
-            const opt = document.createElement("option");
-            opt.value = index;
-            opt.textContent = `Caja ${item.id}`;
-            selectSalida.appendChild(opt.cloneNode(true));
-            selectEntrada.appendChild(opt);
+    // --- NUEVA FUNCIÓN PARA ACTUALIZAR LOS SELECTORES ---
+    function updateBoxOptions(mode) {
+        const type = mode === 'Salida' ? document.getElementById("typeSelectSalida").value : document.getElementById("typeSelectEntrada").value;
+        const select = mode === 'Salida' ? document.getElementById("boxSelect") : document.getElementById("boxSelectAdd");
+        
+        select.innerHTML = "";
+        
+        inventory.forEach((item, index) => {
+            const isF = item.id.startsWith("F");
+            if ((type === "SERIEF" && isF) || (type === "NUM" && !isF)) {
+                const opt = document.createElement("option");
+                opt.value = index;
+                opt.textContent = `Caja ${item.id}`;
+                select.appendChild(opt);
+            }
         });
     }
 
@@ -580,7 +605,6 @@
     function descargarPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        
         const totalCajas = inventory.length;
         const criticas = inventory.filter(i => i.stock < i.min).length;
         const optimas = totalCajas - criticas;
@@ -588,76 +612,28 @@
         doc.setFontSize(22);
         doc.setTextColor(177, 18, 38);
         doc.text("FILTROS Y SERVICIOS DE MEXICO", 14, 20);
-        
         doc.setFontSize(16);
         doc.setTextColor(40, 40, 40);
         doc.text("Reporte de Inventario de Cajas", 14, 30);
-        
         doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
         doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 38);
         doc.line(14, 42, 196, 42);
 
-        doc.setFontSize(12);
-        doc.setTextColor(0);
-        doc.setFont(undefined, 'bold');
-        doc.text("RESUMEN EJECUTIVO", 14, 52);
-        
-        doc.setFont(undefined, 'normal');
-        doc.setFontSize(10);
-        doc.text(`Total de modelos de cajas: ${totalCajas}`, 14, 60);
-        
-        doc.setTextColor(177, 18, 38);
-        doc.text(`Cajas con Stock Crítico (Requisición): ${criticas}`, 14, 67);
-        
-        doc.setTextColor(30, 132, 73);
-        doc.text(`Cajas en estado óptimo: ${optimas}`, 14, 74);
-        
-        doc.setTextColor(100);
-        doc.text("________________________________________________________________________", 14, 78);
-
-        const filas = inventory.map(item => {
-            const estado = item.stock < item.min ? "REQUISICIÓN" : "ÓPTIMO";
-            return [
-                `Caja ${item.id}`,
-                TABLA_MEDIDAS[item.id] || "N/A",
-                item.stock,
-                `${item.min} / ${item.max}`,
-                estado
-            ];
-        });
+        const filas = inventory.map(item => [
+            `Caja ${item.id}`,
+            TABLA_MEDIDAS[item.id] || "N/A",
+            item.stock,
+            `${item.min} / ${item.max}`,
+            item.stock < item.min ? "REQUISICIÓN" : "ÓPTIMO"
+        ]);
 
         doc.autoTable({
             startY: 85,
             head: [['ID Caja', 'Medida Técnica', 'Stock', 'Mín / Máx', 'Estado']],
             body: filas,
             theme: 'striped',
-            headStyles: { fillColor: [177, 18, 38], halign: 'center' },
-            columnStyles: {
-                0: { fontStyle: 'bold' },
-                1: { cellWidth: 75 },
-                2: { halign: 'center' },
-                3: { halign: 'center' },
-                4: { halign: 'center' }
-            },
-            didParseCell: function(data) {
-                if (data.section === 'body' && data.column.index === 4) {
-                    if (data.cell.raw === 'REQUISICIÓN') {
-                        data.cell.styles.textColor = [177, 18, 38];
-                        data.cell.styles.fontStyle = 'bold';
-                    } else {
-                        data.cell.styles.textColor = [30, 132, 73];
-                    }
-                }
-            }
+            headStyles: { fillColor: [177, 18, 38] }
         });
-
-        const pageCount = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-            doc.setPage(i);
-            doc.setFontSize(8);
-            doc.text(`Página ${i} de ${pageCount} - FILSA Almacén`, 14, doc.internal.pageSize.height - 10);
-        }
 
         doc.save(`Reporte_Filsa_${new Date().toLocaleDateString()}.pdf`);
     }
@@ -665,4 +641,3 @@
 </script>
 </body>
 </html>
-
