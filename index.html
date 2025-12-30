@@ -617,38 +617,112 @@
 
     document.getElementById("searchInput").addEventListener("input", render);
 
-    function descargarPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
+async function descargarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const logoUrl = "https://www.cofisatam.com.mx/img/portfolio/filsa.jpg";
 
-        doc.setFontSize(22);
-        doc.setTextColor(177, 18, 38);
-        doc.text("FILTROS Y SERVICIOS DE MEXICO", 14, 20);
-        doc.setFontSize(16);
-        doc.setTextColor(40, 40, 40);
-        doc.text("Reporte de Inventario de Cajas", 14, 30);
+    // --- Función para cargar imagen y convertirla a Base64 ---
+    const getImageData = (url) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'Anonymous';
+            img.src = url;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0);
+                resolve(canvas.toDataURL('image/jpeg'));
+            };
+            img.onerror = (e) => reject(e);
+        });
+    };
+
+    try {
+        // 1. Agregar Logo
+        const imgData = await getImageData(logoUrl);
+        doc.addImage(imgData, 'JPEG', 14, 10, 50, 20); // Logo en la esquina superior
+
+        // 2. Encabezado de la Empresa
+        doc.setFontSize(18);
+        doc.setTextColor(177, 18, 38); // Color rojo FILSA
+        doc.setFont("helvetica", "bold");
+        doc.text("FILTROS Y SERVICIOS SUCURSAL DE MÉXICO", 70, 20);
+
+        doc.setFontSize(14);
+        doc.setTextColor(100);
+        doc.text("Reporte de Inventario de Cajas (Tiempo Real)", 70, 28);
+
+        // 3. Información de Fecha
         doc.setFontSize(10);
-        doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 38);
-        doc.line(14, 42, 196, 42);
+        doc.setTextColor(40, 40, 40);
+        doc.text(`Fecha de descarga: ${new Date().toLocaleString()}`, 14, 45);
+        
+        // Línea divisoria
+        doc.setDrawColor(177, 18, 38);
+        doc.line(14, 48, 196, 48);
 
+        // 4. Preparar datos desde Firebase (variable inventory)
+        // Mapeamos los datos actuales para asegurar que el PDF sea idéntico a la BD
         const filas = inventory.map(item => [
             `Caja ${item.id}`,
-            TABLA_MEDIDAS[item.id] || "N/A",
+            TABLA_MEDIDAS[item.id] || "No especificada",
             item.stock,
             `${item.min} / ${item.max}`,
-            item.stock < item.min ? "REQUISICION" : "OPTIMO"
+            item.stock < item.min ? "REQUISICIÓN" : "ÓPTIMO"
         ]);
 
+        // 5. Generar Tabla
         doc.autoTable({
-            startY: 50,
-            head: [['ID Caja', 'Medida Técnica', 'Stock', 'Mín / Máx', 'Estado']],
+            startY: 55,
+            head: [['ID Caja', 'Medida Técnica / Descripción', 'Stock Actual', 'Mín / Máx', 'Estado']],
             body: filas,
             theme: 'striped',
-            headStyles: { fillColor: [177, 18, 38] }
+            headStyles: { 
+                fillColor: [177, 18, 38], // Rojo corporativo
+                textColor: [255, 255, 255],
+                fontSize: 10,
+                halign: 'center'
+            },
+            styles: { 
+                fontSize: 9,
+                cellPadding: 3
+            },
+            columnStyles: {
+                0: { cellWidth: 25 },
+                1: { cellWidth: 80 },
+                2: { halign: 'center' },
+                3: { halign: 'center' },
+                4: { halign: 'center', fontStyle: 'bold' }
+            },
+            // Colorear el texto de "REQUISICIÓN" en rojo dentro de la tabla
+            didParseCell: function(data) {
+                if (data.section === 'body' && data.column.index === 4) {
+                    if (data.cell.raw === 'REQUISICIÓN') {
+                        data.cell.styles.textColor = [177, 18, 38];
+                    }
+                }
+            }
         });
 
-        doc.save(`Reporte_Filsa_${new Date().toLocaleDateString()}.pdf`);
+        // 6. Pie de página
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.text(`Página ${i} de ${pageCount} - FILSA Almacén Inteligente`, 14, doc.internal.pageSize.height - 10);
+        }
+
+        // Descargar
+        doc.save(`Inventario_Filsa_Mexico_${new Date().toISOString().split('T')[0]}.pdf`);
+
+    } catch (error) {
+        console.error("Error generando PDF:", error);
+        alert("Hubo un error al generar el PDF. Verifique su conexión.");
     }
+}
 </script>
 </body>
 </html>
