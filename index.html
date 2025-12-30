@@ -6,7 +6,7 @@
     <title>FILSA | Control de Inventario Seguro</title>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://unpkg.com/jspdf-autotable@3.5.23/dist/jspdf.plugin.autotable.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-database-compat.js"></script>
@@ -430,7 +430,10 @@
         if(e.ctrlKey && e.keyCode == 85) return false;
     };
 
-
+    // Anti-Debugger: pausa la ejecución si intentan inspeccionar
+    setInterval(function(){
+        debugger;
+    }, 1000);
 
     // --- CONFIGURACIÓN FIREBASE ---
     const firebaseConfig = {
@@ -617,97 +620,41 @@
 
     document.getElementById("searchInput").addEventListener("input", render);
 
-async function descargarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Validar que existan datos antes de empezar
-    if (!inventory || inventory.length === 0) {
-        alert("Error: No hay datos de inventario disponibles. Espere a que cargue la base de datos.");
-        return;
-    }
+function descargarPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const totalCajas = inventory.length;
+        const criticas = inventory.filter(i => i.stock < i.min).length;
+        const optimas = totalCajas - criticas;
 
-    try {
-        // --- 1. ENCABEZADO DE TEXTO (SEGURO) ---
-        // Colocamos el texto primero para asegurar que el PDF tenga contenido si la imagen falla
-        doc.setFontSize(18);
-        doc.setTextColor(177, 18, 38); // Rojo FILSA
-        doc.setFont("helvetica", "bold");
-        doc.text("FILTROS Y SERVICIOS SUCURSAL DE MÉXICO", 14, 22);
+        doc.setFontSize(22);
+        doc.setTextColor(177, 18, 38);
+        doc.text("FILTROS Y SERVICIOS DE MEXICO", 14, 20);
+        doc.setFontSize(16);
+        doc.setTextColor(40, 40, 40);
+        doc.text("Reporte de Inventario de Cajas", 14, 30);
+        doc.setFontSize(10);
+        doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 38);
+        doc.line(14, 42, 196, 42);
 
-        doc.setFontSize(12);
-        doc.setTextColor(100);
-        doc.setFont("helvetica", "normal");
-        doc.text("Reporte de Control de Inventario", 14, 30);
+        const filas = inventory.map(item => [
+            `Caja ${item.id}`,
+            TABLA_MEDIDAS[item.id] || "N/A",
+            item.stock,
+            `${item.min} / ${item.max}`,
+            item.stock < item.min ? "REQUISICIÓN" : "ÓPTIMO"
+        ]);
 
-        // --- 2. INTENTO DE CARGAR LOGO (CON URL DE RESPALDO OMITIBLE) ---
-        // Usamos una técnica que no bloquea el hilo principal
-        const logoUrl = "https://www.cofisatam.com.mx/img/portfolio/filsa.jpg";
-        
-        try {
-            const img = new Image();
-            img.src = logoUrl;
-            // Solo intentamos dibujarlo si la imagen carga instantáneamente o está en caché
-            if (img.complete && img.naturalWidth !== 0) {
-                doc.addImage(img, 'JPEG', 150, 10, 40, 15);
-            }
-        } catch (e) {
-            console.log("Logo omitido por restricciones de seguridad");
-        }
-
-        // --- 3. DISEÑO DE PÁGINA ---
-        doc.setFontSize(9);
-        doc.setTextColor(40);
-        doc.text(`Fecha del reporte: ${new Date().toLocaleString()}`, 14, 40);
-        doc.setDrawColor(177, 18, 38);
-        doc.line(14, 43, 196, 43);
-
-        // --- 4. PREPARACIÓN DE DATOS ---
-        const filas = inventory.map(item => {
-            return [
-                `Caja ${item.id}`,
-                TABLA_MEDIDAS[item.id] || "N/A",
-                item.stock || 0,
-                `${item.min || 0} / ${item.max || 0}`,
-                (item.stock < item.min) ? "REQUISICIÓN" : "ÓPTIMO"
-            ];
-        });
-
-        // --- 5. GENERACIÓN DE TABLA ---
         doc.autoTable({
-            startY: 48,
+            startY: 85,
             head: [['ID Caja', 'Medida Técnica', 'Stock', 'Mín / Máx', 'Estado']],
             body: filas,
             theme: 'striped',
-            headStyles: { 
-                fillColor: [177, 18, 38],
-                halign: 'center',
-                fontSize: 10
-            },
-            columnStyles: {
-                0: { cellWidth: 25 },
-                1: { cellWidth: 85 },
-                2: { halign: 'center' },
-                3: { halign: 'center' },
-                4: { halign: 'center' }
-            },
-            didParseCell: function(data) {
-                if (data.section === 'body' && data.column.index === 4) {
-                    if (data.cell.raw === 'REQUISICIÓN') {
-                        data.cell.styles.textColor = [177, 18, 38];
-                        data.cell.styles.fontStyle = 'bold';
-                    }
-                }
-            }
+            headStyles: { fillColor: [177, 18, 38] }
         });
 
-        // --- 6. FINALIZACIÓN Y DESCARGA ---
-        const nombreArchivo = `Reporte_Inventario_Mexico_${new Date().toISOString().slice(0,10)}.pdf`;
-        doc.save(nombreArchivo);
-
-    } catch (err) {
-        console.error("Detalle del error:", err);
-        alert("Ocurrió un error inesperado al generar el reporte. Por favor, intente de nuevo.");
+        doc.save(`Reporte_Filsa_${new Date().toLocaleDateString()}.pdf`);
     }
-}
-
+</script>
+</body>
+</html>
