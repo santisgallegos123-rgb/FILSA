@@ -620,10 +620,13 @@
 
     document.getElementById("searchInput").addEventListener("input", render);
 
-    function descargarPDF() {
+function descargarPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        
+        const totalCajas = inventory.length;
+        const criticas = inventory.filter(i => i.stock < i.min).length;
+        const optimas = totalCajas - criticas;
+
         doc.setFontSize(22);
         doc.setTextColor(177, 18, 38);
         doc.text("FILTROS Y SERVICIOS DE MEXICO", 14, 20);
@@ -643,7 +646,7 @@
         ]);
 
         doc.autoTable({
-            startY: 45,
+            startY: 85,
             head: [['ID Caja', 'Medida Técnica', 'Stock', 'Mín / Máx', 'Estado']],
             body: filas,
             theme: 'striped',
@@ -652,7 +655,7 @@
 
         doc.save(`Reporte_Filsa_${new Date().toLocaleDateString()}.pdf`);
     }
-
 </script>
 </body>
 </html>
+
