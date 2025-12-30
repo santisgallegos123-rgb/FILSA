@@ -17,7 +17,7 @@
             --red:#b11226;
             --red-dark:#8f0e1f;
             --white:#ffffff;
-            --gray:#f4f4f4;
+            --gray:#ffffff;
             --success:#1e8449;
         }
 
@@ -28,6 +28,11 @@
             font-family:"Segoe UI",Roboto,sans-serif;
             background:var(--gray);
             overflow-x:hidden;
+            /* BLOQUEO DE SELECCIÓN DE TEXTO */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
 
         /* --- ESTILOS LOGIN --- */
@@ -301,21 +306,19 @@
     </style>
 </head>
 
-<body>
-
-<div id="loginWrapper">
+<body oncontextmenu="return false;"> <div id="loginWrapper">
     <div class="login-card">
         <img src="https://www.cofisatam.com.mx/img/portfolio/filsa.jpg" alt="FILSA LOGO">
         <h2>Control de Inventario</h2>
         
         <div class="login-field">
             <label>Correo Electrónico</label> 
-            <input type="email" id="user" placeholder="ejemplo@filsa.com">
+            <input type="email" id="user" placeholder="ejemplo@filsa.com" autocomplete="off">
         </div>
         
         <div class="login-field">
             <label>Contraseña</label>
-            <input type="password" id="pass" placeholder="••••••••">
+            <input type="password" id="pass" placeholder="••••••••" autocomplete="off">
         </div>
         
         <button class="login-btn" onclick="validarLogin()">INGRESAR</button>
@@ -415,6 +418,23 @@
 </div>
 
 <script>
+    /**
+     * BLOQUEO DE SEGURIDAD (ANTICOPIA)
+     */
+    document.onkeydown = function(e) {
+        // Bloquear F12
+        if(e.keyCode == 123) return false;
+        // Bloquear Ctrl+Shift+I, J, C
+        if(e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) return false;
+        // Bloquear Ctrl+U (Ver código)
+        if(e.ctrlKey && e.keyCode == 85) return false;
+    };
+
+    // Anti-Debugger: pausa la ejecución si intentan inspeccionar
+    setInterval(function(){
+        debugger;
+    }, 1000);
+
     // --- CONFIGURACIÓN FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyB8wVMIhqa9OAFJCt3bzqouip2ICtqJkNQ",
@@ -435,7 +455,6 @@
 
     // --- LÓGICA DE AUTENTICACIÓN ---
     
-    // Al cargar la página, forzamos cierre de sesión para que el "Refrescar" mande al inicio
     window.onload = () => {
         auth.signOut();
     };
@@ -536,7 +555,6 @@
         });
     }
 
-    // --- NUEVA FUNCIÓN PARA ACTUALIZAR LOS SELECTORES ---
     function updateBoxOptions(mode) {
         const type = mode === 'Salida' ? document.getElementById("typeSelectSalida").value : document.getElementById("typeSelectEntrada").value;
         const select = mode === 'Salida' ? document.getElementById("boxSelect") : document.getElementById("boxSelectAdd");
@@ -605,10 +623,7 @@
     function descargarPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
-        const totalCajas = inventory.length;
-        const criticas = inventory.filter(i => i.stock < i.min).length;
-        const optimas = totalCajas - criticas;
-
+        
         doc.setFontSize(22);
         doc.setTextColor(177, 18, 38);
         doc.text("FILTROS Y SERVICIOS DE MEXICO", 14, 20);
@@ -628,7 +643,7 @@
         ]);
 
         doc.autoTable({
-            startY: 85,
+            startY: 45,
             head: [['ID Caja', 'Medida Técnica', 'Stock', 'Mín / Máx', 'Estado']],
             body: filas,
             theme: 'striped',
@@ -641,5 +656,3 @@
 </script>
 </body>
 </html>
-
-
