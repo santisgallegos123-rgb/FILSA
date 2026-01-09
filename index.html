@@ -17,7 +17,7 @@
             --red:#b11226;
             --red-dark:#8f0e1f;
             --white:#ffffff;
-            --gray:#ffffff;
+            --gray:#f4f4f4;
             --success:#1e8449;
         }
 
@@ -28,11 +28,6 @@
             font-family:"Segoe UI",Roboto,sans-serif;
             background:var(--gray);
             overflow-x:hidden;
-            /* BLOQUEO DE SELECCIÓN DE TEXTO */
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
         }
 
         /* --- ESTILOS LOGIN --- */
@@ -306,19 +301,21 @@
     </style>
 </head>
 
-<body oncontextmenu="return false;"> <div id="loginWrapper">
+<body>
+
+<div id="loginWrapper">
     <div class="login-card">
         <img src="https://www.cofisatam.com.mx/img/portfolio/filsa.jpg" alt="FILSA LOGO">
         <h2>Control de Inventario</h2>
         
         <div class="login-field">
             <label>Correo Electrónico</label> 
-            <input type="email" id="user" placeholder="ejemplo@filsa.com" autocomplete="off">
+            <input type="email" id="user" placeholder="ejemplo@filsa.com">
         </div>
         
         <div class="login-field">
             <label>Contraseña</label>
-            <input type="password" id="pass" placeholder="••••••••" autocomplete="off">
+            <input type="password" id="pass" placeholder="••••••••">
         </div>
         
         <button class="login-btn" onclick="validarLogin()">INGRESAR</button>
@@ -356,7 +353,7 @@
                     <h2>Salida de Almacén</h2>
                     <label>Tipo de Caja</label>
                     <select id="typeSelectSalida" onchange="updateBoxOptions('Salida')">
-                        <option value="NUM">Numéricas (1-42)</option>
+                        <option value="NUM">Numéricas (1-43)</option>
                         <option value="SERIEF">Serie F (F1-F25)</option>
                     </select>
 
@@ -389,7 +386,7 @@
 
                 <main>
                     <div class="section">
-                        <h3>Cajas Numéricas (1 – 42)</h3>
+                        <h3>Cajas Numéricas (1 – 43)</h3>
                         <div style="max-height:500px; overflow-y:auto;">
                             <table>
                                 <thead>
@@ -418,23 +415,6 @@
 </div>
 
 <script>
-    /**
-     * BLOQUEO DE SEGURIDAD (ANTICOPIA)
-     */
-    document.onkeydown = function(e) {
-        // Bloquear F12
-        if(e.keyCode == 123) return false;
-        // Bloquear Ctrl+Shift+I, J, C
-        if(e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) return false;
-        // Bloquear Ctrl+U (Ver código)
-        if(e.ctrlKey && e.keyCode == 85) return false;
-    };
-
-    // Anti-Debugger: pausa la ejecución si intentan inspeccionar
-    setInterval(function(){
-        debugger;
-    }, 1000);
-
     // --- CONFIGURACIÓN FIREBASE ---
     const firebaseConfig = {
         apiKey: "AIzaSyB8wVMIhqa9OAFJCt3bzqouip2ICtqJkNQ",
@@ -455,6 +435,7 @@
 
     // --- LÓGICA DE AUTENTICACIÓN ---
     
+    // Al cargar la página, forzamos cierre de sesión para que el "Refrescar" mande al inicio
     window.onload = () => {
         auth.signOut();
     };
@@ -514,7 +495,7 @@
 
     function generateDefaults() {
         const temp = [];
-        for(let i=1; i<=42; i++) temp.push({ id: i.toString(), stock: 20, min: 10, max: 50 });
+        for(let i=1; i<=43; i++) temp.push({ id: i.toString(), stock: 20, min: 10, max: 50 });
         for(let i=1; i<=25; i++) temp.push({ id: `F${i}`, stock: 20, min: 10, max: 50 });
         return temp;
     }
@@ -555,6 +536,7 @@
         });
     }
 
+    // --- NUEVA FUNCIÓN PARA ACTUALIZAR LOS SELECTORES ---
     function updateBoxOptions(mode) {
         const type = mode === 'Salida' ? document.getElementById("typeSelectSalida").value : document.getElementById("typeSelectEntrada").value;
         const select = mode === 'Salida' ? document.getElementById("boxSelect") : document.getElementById("boxSelectAdd");
@@ -620,7 +602,7 @@
 
     document.getElementById("searchInput").addEventListener("input", render);
 
-function descargarPDF() {
+    function descargarPDF() {
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
         const totalCajas = inventory.length;
@@ -655,6 +637,7 @@ function descargarPDF() {
 
         doc.save(`Reporte_Filsa_${new Date().toLocaleDateString()}.pdf`);
     }
+
 </script>
 </body>
 </html>
