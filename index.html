@@ -1,1286 +1,664 @@
-
-Conversación con Gemini
 <!DOCTYPE html>
-
 <html lang="es">
-
 <head>
-
     <meta charset="UTF-8">
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>FILSA | Control de Inventario Seguro</title>
 
-
-
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
 
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
-
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-database-compat.js"></script>
-
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-auth-compat.js"></script> 
-
     
-
     <style>
-
         :root{
-
             --red:#b11226;
-
             --red-dark:#8f0e1f;
-
             --white:#ffffff;
-
-            --gray:#f4f4f4;
-
+            --gray:#ffffff;
             --success:#1e8449;
-
         }
-
-
 
         *{box-sizing:border-box}
 
-
-
         body{
-
             margin:0;
-
             font-family:"Segoe UI",Roboto,sans-serif;
-
             background:var(--gray);
-
             overflow-x:hidden;
-
+            /* BLOQUEO DE SELECCIÓN DE TEXTO */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
-
-
 
         /* --- ESTILOS LOGIN --- */
-
         #loginWrapper {
-
             display: flex;
-
             justify-content: center;
-
             align-items: center;
-
             height: 100vh;
-
             background: linear-gradient(135deg, var(--red) 0%, #5e0814 100%);
-
         }
-
-
 
         .login-card {
-
             background: white;
-
             padding: 40px;
-
             border-radius: 20px;
-
             box-shadow: 0 15px 35px rgba(0,0,0,0.3);
-
             width: 100%;
-
             max-width: 400px;
-
             text-align: center;
-
         }
-
-
 
         .login-card img {
-
             width: 200px;
-
             margin-bottom: 25px;
-
         }
-
-
 
         .login-card h2 {
-
             color: var(--red-dark);
-
             margin-bottom: 25px;
-
             font-size: 1.5rem;
-
         }
-
-
 
         .login-field {
-
             margin-bottom: 20px;
-
             text-align: left;
-
         }
-
-
 
         .login-field label {
-
             display: block;
-
             margin-bottom: 8px;
-
             color: #555;
-
             font-weight: bold;
-
         }
-
-
 
         .login-field input {
-
             width: 100%;
-
             padding: 12px;
-
             border: 1px solid #ddd;
-
             border-radius: 8px;
-
             font-size: 1rem;
-
         }
-
-
 
         .login-btn {
-
             width: 100%;
-
             padding: 14px;
-
             background: var(--red);
-
             color: white;
-
             border: none;
-
             border-radius: 8px;
-
             font-weight: bold;
-
             font-size: 1.1rem;
-
             cursor: pointer;
-
             transition: 0.3s;
-
         }
-
-
 
         .login-btn:hover {
-
             background: var(--red-dark);
-
         }
-
-
 
         /* --- ESTILOS INVENTARIO --- */
-
         #mainApp {
-
             display: none; 
-
         }
-
-
 
         #appWrapper{
-
             transition:margin-right .4s ease;
-
             margin-right:0;
-
         }
-
-
 
         #appWrapper.compressed{
-
             margin-right:520px;
-
         }
-
-
 
         .top-bar{
-
             position:fixed;
-
             top:15px;
-
             right:20px;
-
             z-index:4000;
-
         }
-
-
 
         .menu-btn{
-
             background:var(--red);
-
             color:white;
-
             border:none;
-
             padding:12px 20px;
-
             border-radius:30px;
-
             font-weight:bold;
-
             cursor:pointer;
-
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-
         }
-
-
 
         .menu-panel{
-
             position:fixed;
-
             top:0;
-
             right:-520px;
-
             width:520px;
-
             height:100vh;
-
             background:var(--red);
-
             color:white;
-
             padding:30px 25px;
-
             transition:.4s ease;
-
             z-index:3500;
-
             box-shadow:-6px 0 20px rgba(0,0,0,.4);
-
         }
-
-
 
         .menu-panel.active{
-
             right:0;
-
         }
-
-
 
         .menu-title{
-
             font-size:1.3rem;
-
             font-weight:bold;
-
             margin-bottom:20px;
-
         }
-
-
 
         .menu-search input{
-
             width:100%;
-
             padding:12px;
-
             border-radius:25px;
-
             border:none;
-
             margin-bottom:20px;
-
             color: #333;
-
         }
-
-
 
         .menu-item{
-
             background:rgba(255,255,255,.15);
-
             padding:14px 16px;
-
             border-radius:14px;
-
             margin-bottom:12px;
-
             cursor:pointer;
-
         }
-
-
 
         .menu-item:hover{
-
             background:rgba(255,255,255,.25);
-
         }
-
-
 
         .history-list{
-
             max-height:400px;
-
             overflow-y:auto;
-
             margin-top:10px;
-
             background: rgba(0,0,0,0.1);
-
             border-radius: 10px;
-
             padding: 10px;
-
         }
-
-
 
         .history-item{
-
             padding:8px;
-
             border-bottom:1px solid rgba(255,255,255,0.2);
-
             font-size: 0.85rem;
-
         }
-
-
 
         .container{
-
             max-width:1400px;
-
             margin:auto;
-
             padding:20px;
-
         }
-
-
 
         .logo{
-
             text-align:center;
-
             margin:60px 0 25px;
-
         }
-
-
 
         .logo img{
-
             width:350px;
-
             max-width:100%;
-
         }
-
-
 
         .main-layout{
-
             display:grid;
-
             grid-template-columns:320px 1fr;
-
             gap:25px;
-
         }
-
-
 
         .panel{
-
             background:var(--white);
-
             border-radius:18px;
-
             padding:25px;
-
             box-shadow:0 6px 18px rgba(0,0,0,.1);
-
             height: fit-content;
-
         }
-
-
 
         .panel h2{
-
             margin-top:20px;
-
             color:var(--red-dark);
-
             font-size: 1.2rem;
-
             border-bottom:2px solid #eee;
-
             padding-bottom:10px;
-
         }
-
-
 
         label{
-
             display:block;
-
             margin-top:15px;
-
             font-weight:600;
-
             font-size: 0.9rem;
-
         }
-
-
 
         select,input,button{
-
             width:100%;
-
             padding:12px;
-
             margin-top:8px;
-
             border-radius:8px;
-
             border:1px solid #ddd;
-
         }
-
-
 
         .section{
-
             background:var(--white);
-
             border-radius:18px;
-
             padding:20px;
-
             box-shadow:0 6px 18px rgba(0,0,0,.1);
-
             margin-bottom:25px;
-
         }
-
-
 
         table{
-
             width:100%;
-
             border-collapse:collapse;
-
         }
-
-
 
         th{
-
             background:#ffe5e8;
-
             padding:14px;
-
             color:var(--red-dark);
-
             text-align: left;
-
         }
-
-
 
         td{
-
             padding:12px 14px;
-
             border-bottom:1px solid #eee;
-
         }
-
-
 
         .badge{
-
             padding:6px 12px;
-
             border-radius:20px;
-
             font-weight:600;
-
             font-size:.85rem;
-
         }
-
-
 
         .critical{ background:#fdecea; color:var(--red-dark); }
-
         .normal{ background:#eafaf1; color:var(--success); }
 
-
-
         .btn-req{
-
             background:var(--red);
-
             color:white;
-
             padding:6px 12px;
-
             border-radius:20px;
-
             text-decoration:none;
-
             font-size:.75rem;
-
         }
-
-
 
         .info-icon {
-
             display: inline-block;
-
             margin-left: 8px;
-
             color: var(--red);
-
             cursor: pointer;
-
             font-weight: bold;
-
         }
-
-
 
         @media(max-width:950px){
-
             .main-layout{ grid-template-columns:1fr; }
-
             .menu-panel{ width: 100%; right: -100%; }
-
         }
-
     </style>
-
 </head>
 
-
-
-<body>
-
-
-
-<div id="loginWrapper">
-
+<body oncontextmenu="return false;"> <div id="loginWrapper">
     <div class="login-card">
-
         <img src="https://www.cofisatam.com.mx/img/portfolio/filsa.jpg" alt="FILSA LOGO">
-
         <h2>Control de Inventario</h2>
-
         
-
         <div class="login-field">
-
             <label>Correo Electrónico</label> 
-
-            <input type="email" id="user" placeholder="ejemplo@filsa.com">
-
+            <input type="email" id="user" placeholder="ejemplo@filsa.com" autocomplete="off">
         </div>
-
         
-
         <div class="login-field">
-
             <label>Contraseña</label>
-
-            <input type="password" id="pass" placeholder="••••••••">
-
+            <input type="password" id="pass" placeholder="••••••••" autocomplete="off">
         </div>
-
         
-
         <button class="login-btn" onclick="validarLogin()">INGRESAR</button>
-
         <p id="loginError" style="color: red; margin-top: 15px; display: none; font-size: 0.9rem;">Credenciales incorrectas o error de acceso</p>
-
     </div>
-
 </div>
-
-
 
 <div id="mainApp">
-
     <div class="top-bar">
-
         <button class="menu-btn" onclick="toggleMenu()">MENÚ ☰</button>
-
     </div>
-
-
 
     <div class="menu-panel" id="menuPanel">
-
         <div class="menu-title">Menú de Control</div>
-
         <div class="menu-search">
-
             <input type="text" id="searchInput" placeholder="Buscar caja...">
-
         </div>
-
         <div class="menu-item" onclick="descargarPDF()"> Descargar reporte PDF</div>
-
         <div class="menu-item" onclick="toggleHistory()"> Ver Historial Reciente</div>
-
         
-
         <div id="historyContainer" style="display:none">
-
             <div class="history-list" id="historyList">Cargando historial...</div>
-
         </div>
-
         <div class="menu-item" onclick="cerrarSesion()" style="background: rgba(0,0,0,0.3); margin-top: 20px;">Cerrar Sesión</div>
-
     </div>
-
-
 
     <div id="appWrapper">
-
         <div class="container">
-
             <div class="logo">
-
                 <img src="https://www.cofisatam.com.mx/img/portfolio/filsa.jpg" alt="FILSA">
-
             </div>
-
-
 
             <div class="main-layout">
-
                 <aside class="panel">
-
                     <h2>Salida de Almacén</h2>
-
                     <label>Tipo de Caja</label>
-
                     <select id="typeSelectSalida" onchange="updateBoxOptions('Salida')">
-
-                        <option value="NUM">Numéricas (1-43)</option>
-
+                        <option value="NUM">Numéricas (1-42)</option>
                         <option value="SERIEF">Serie F (F1-F25)</option>
-
                     </select>
 
-
-
                     <label>Seleccionar Caja</label>
-
                     <select id="boxSelect"></select>
 
-
-
                     <label>Cantidad a retirar</label>
-
                     <input type="number" id="qtyInput" value="1" min="1">
-
                     
-
                     <label>Folio o Modelo</label>
-
                     <input type="text" id="inputReferencia" placeholder="Ingresa folio o modelo">
-
                     
-
                     <button onclick="procesarSalida()" style="background:var(--red); color:white; font-weight:bold; cursor:pointer;">Registrar Salida</button>
 
-
-
                     <h2 style="margin-top:40px;">Entrada de Almacén</h2>
-
                     <label>Tipo de Caja</label>
-
                     <select id="typeSelectEntrada" onchange="updateBoxOptions('Entrada')">
-
                         <option value="NUM">Numéricas (1-43)</option>
-
                         <option value="SERIEF">Serie F (F1-F25)</option>
-
                     </select>
 
-
-
                     <label>Seleccionar Caja</label>
-
                     <select id="boxSelectAdd"></select>
 
-
-
                     <label>Cantidad a agregar</label>
-
                     <input type="number" id="qtyAddInput" value="1" min="1">
-
                     
-
                     <button onclick="procesarEntrada()" style="background:#1e8449; color:white; font-weight:bold; cursor:pointer;">Registrar Entrada</button>
-
                 </aside>
 
-
-
                 <main>
-
                     <div class="section">
-
-                        <h3>Cajas Numéricas (1 – 43)</h3>
-
+                        <h3>Cajas Numéricas (1 – 42)</h3>
                         <div style="max-height:500px; overflow-y:auto;">
-
                             <table>
-
                                 <thead>
-
                                     <tr><th>Caja</th><th>Stock</th><th>Mín/Máx</th><th>Estado</th></tr>
-
                                 </thead>
-
                                 <tbody id="bodyNum"></tbody>
-
                             </table>
-
                         </div>
-
                     </div>
-
-
 
                     <div class="section">
-
                         <h3>Serie F (F1 – F25)</h3>
-
                         <div style="max-height:500px; overflow-y:auto;">
-
                             <table>
-
                                 <thead>
-
                                     <tr><th>Caja</th><th>Stock</th><th>Mín/Máx</th><th>Estado</th></tr>
-
                                 </thead>
-
                                 <tbody id="bodyF"></tbody>
-
                             </table>
-
                         </div>
-
                     </div>
-
                 </main>
-
             </div>
-
         </div>
-
     </div>
-
 </div>
 
-
-
 <script>
+    /**
+     * BLOQUEO DE SEGURIDAD (ANTICOPIA)
+     */
+    document.onkeydown = function(e) {
+        // Bloquear F12
+        if(e.keyCode == 123) return false;
+        // Bloquear Ctrl+Shift+I, J, C
+        if(e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74 || e.keyCode == 67)) return false;
+        // Bloquear Ctrl+U (Ver código)
+        if(e.ctrlKey && e.keyCode == 85) return false;
+    };
+
+    // Anti-Debugger: pausa la ejecución si intentan inspeccionar
+    setInterval(function(){
+        debugger;
+    }, 1000);
 
     // --- CONFIGURACIÓN FIREBASE ---
-
     const firebaseConfig = {
-
         apiKey: "AIzaSyB8wVMIhqa9OAFJCt3bzqouip2ICtqJkNQ",
-
         authDomain: "almacen-cajas-filsa.firebaseapp.com",
-
         databaseURL: "https://almacen-cajas-filsa-default-rtdb.firebaseio.com",
-
         projectId: "almacen-cajas-filsa",
-
         storageBucket: "almacen-cajas-filsa.firebasestorage.app",
-
         messagingSenderId: "1027121761492",
-
         appId: "1:1027121761492:web:6d892a43ade34e4117bf41"
-
     };
-
-
 
     firebase.initializeApp(firebaseConfig);
-
     const db = firebase.database();
-
     const auth = firebase.auth();
 
-
-
     let inventory = [];
-
     const EMAIL_REQUISICION = "almacenfilsa@gmail.com";
 
-
-
     // --- LÓGICA DE AUTENTICACIÓN ---
-
     
-
-    // Al cargar la página, forzamos cierre de sesión para que el "Refrescar" mande al inicio
-
     window.onload = () => {
-
         auth.signOut();
-
     };
 
-
-
     auth.onAuthStateChanged((user) => {
-
         if (user) {
-
             document.getElementById("loginWrapper").style.display = "none";
-
             document.getElementById("mainApp").style.display = "block";
-
             init(); 
-
         } else {
-
             document.getElementById("loginWrapper").style.display = "flex";
-
             document.getElementById("mainApp").style.display = "none";
-
         }
-
     });
 
-
-
     function validarLogin() {
-
         const email = document.getElementById("user").value;
-
         const pass = document.getElementById("pass").value;
-
         const errorMsg = document.getElementById("loginError");
-
         if(!email || !pass) { alert("Completa los campos"); return; }
-
         auth.signInWithEmailAndPassword(email, pass).catch((error) => {
-
             errorMsg.style.display = "block";
-
             errorMsg.innerText = "Error: Credenciales inválidas";
-
         });
-
     }
-
-
 
     function cerrarSesion() { auth.signOut(); }
 
-
-
     // --- LÓGICA DE INVENTARIO ---
 
-
-
     const TABLA_MEDIDAS = {
-
         "1": "9\" X 9\" X 41\" ARA", "2": "10\" X 10\" X 40\"", "3": "11\" X 11\" X 30\" FILPRO",
-
         "4": "11\" X 11\" X 45\"", "5": "11\" X 11\" X 40\"", "6": "13\" X 13\" X 40\"",
-
         "7": "13 1/2\" X 13 1/2\" X 37\" LTC", "8": "12\" X 12\" X 40\"", "9": "25 1/2\" X 20\" X 15\"",
-
         "10": "24\" X 24\" X 12\"", "11": "13\" X 13\" X 27\" ELAS 12 3/4\"", "12": "26\" X 26\" X 15\"",
-
         "13": "19\" X 19\" X 50\"", "14": "18\" X 18\" X 50\"", "15": "14 1/2\" X 14 1/2\" X 26 1/2\"",
-
         "16": "14 1/2\" X 14 1/2\" X 24 1/2\" EXME", "17": "14 1/2\" X 14 1/2\" X 37\"", "18": "14\" X 14\" X 27\" ELAS 13 3/4\"",
-
         "19": "16 1/2\" X 16 1/2\" X 19\" TUFLEX", "20": "16\" X 16\" X 40\" MONTERREY", "21": "20\" X 20\" X 15\"",
-
         "22": "15\" X 15\" X 26\"", "23": "3\" X 3\" X 30\"", "24": "3\" X 3\" X 31\"",
-
         "25": "3 1/2\" X 3 1/2\" X 37\"", "26": "3\" X 3\" X 40\"", "27": "4\" X 4\" X 50\"",
-
         "28": "4 1/2\" X 4 1/2\" X 40\"", "29": "5 1/2\" X 5 1/2\" X 17 1/2\" IEFSA", "30": "5 1/2\" X 5 1/2\" X 25 1/2\" FILPRO",
-
         "31": "6\" X 6\" X 39\"", "32": "6\" X 6\" X 20\"", "33": "6 1/2\" X 6 1/2\" X 40\"",
-
         "34": "6 1/2\" X 6 1/2\" X 43 1/2\"", "35": "7\" X 7\" X 37\"", "36": "7\" X 7\" X 43\"",
-
         "37": "7 1/2\" X 7 1/2\" X 21 1/4\"", "38": "7 1/2\" X 7 1/2\" X 22 3/4\"", "39": "7 1/2\" X 7 1/2\" X 32\"",
-
         "40": "7 1/2\" X 7 1/2\" X 41 1/2\"", "41": "7 1/2\" X 7 1/2\" X 43\"", "42": "8\" X 8\" X 40\"",
-
         "F1": "19 1/4\" X 13\" X 43 1/2\" GIV-001", "F2": "19 1/4\" X 13\" X 29 1/2\" GIV-002",
-
         "F3": "16\" X 16\" X 30\" MONTERREY 2", "F4": "13 3/4\" X 13 3/4\" X 46 1/2\" FILPRO",
-
         "F5": "16 3/4\" X 16 3/4\" X 2 1/2\" FILPRO REFORZADA", "F6": "22 1/4\" X 18\" X 2 1/4\" KIMBERLY",
-
         "F7": "14 1/2\" X 14 1/2\" X 74 1/2\"", "F8": "14\" X 14\" X 60\"", "F9": "9\" X 9\" X 80\"",
-
         "F10": "7 1/2\" X 7 1/2\" X 80\"", "F11": "6 1/2\" X 6 1/2\" X 70\"", "F12": "6\" X 6\" X 59 1/2\"",
-
         "F13": "6\" X 6\" X 58\"", "F14": "14 1/2\" X 7 1/4\" X 35\" LTC-188", "F15": "14 1/2\" X 14 1/2\" X 35\" LTC-188",
-
         "F16": "6 3/4\" X 6 3/4\" X 34 1/2\" LTC-188", "F17": "6 3/4\" X 13\" X 37\" LTC-199",
-
         "F18": "6 3/4\" X 6 3/4\" X 36 1/2\" LTC-199", "F19": "24\" X 24\" X 13 1/2\" IEFSA",
-
         "F20": "20\" X 20\" X 21 1/4\" PROP", "F21": "24\" X 24\" X 21 1/4\" PROP", "F22": "14\" X 14\" X 16\"",
-
         "F23": "18\" X 18\" X 13\"", "F24": "24 1/2\" X 24 1/2\" X 9 1/2\"", "F25": "6 1/4\" X 6 1/4\" X 23 1/2\" LTC-200"
-
     };
 
-
-
     function generateDefaults() {
-
         const temp = [];
-
-        for(let i=1; i<=43; i++) temp.push({ id: i.toString(), stock: 20, min: 10, max: 50 });
-
+        for(let i=1; i<=42; i++) temp.push({ id: i.toString(), stock: 20, min: 10, max: 50 });
         for(let i=1; i<=25; i++) temp.push({ id: `F${i}`, stock: 20, min: 10, max: 50 });
-
         return temp;
-
     }
-
-
 
     function init() {
-
         db.ref('inventario').on('value', (snapshot) => {
-
             const data = snapshot.val();
-
             inventory = data || generateDefaults();
-
             if (!data) db.ref('inventario').set(inventory);
-
             render();
-
             updateBoxOptions('Salida');
-
             updateBoxOptions('Entrada');
-
         });
-
         db.ref('historial').limitToLast(20).on('value', (snapshot) => { 
-
             renderHistory(snapshot.val()); 
-
         });
-
     }
 
-
-
     function render() {
-
         const bodyNum = document.getElementById("bodyNum");
-
         const bodyF = document.getElementById("bodyF");
-
         const filter = document.getElementById("searchInput").value.toLowerCase();
-
-
 
         bodyNum.innerHTML = ""; bodyF.innerHTML = "";
 
-
-
         inventory.forEach((item) => {
-
             if(filter && !item.id.toLowerCase().includes(filter)) return;
-
             const isCritical = item.stock < item.min;
-
             const row = `
-
                 <tr>
-
                     <td><strong>Caja ${item.id}</strong> <span class="info-icon" onclick="alert('Medida: ${TABLA_MEDIDAS[item.id] || 'No registrada'}')">ⓘ</span></td>
-
                     <td><span class="badge ${isCritical ? "critical" : "normal"}">${item.stock}</span></td>
-
                     <td>${item.min} / ${item.max}</td>
-
                     <td>${isCritical ? `<a class="btn-req" href="mailto:${EMAIL_REQUISICION}?subject=Requisición Caja ${item.id}">Requisición</a>` : `<span style="color:#999; font-size:0.8rem">Óptimo</span>`}</td>
-
                 </tr>`;
-
             if(item.id.startsWith("F")) { bodyF.innerHTML += row; } 
-
             else { bodyNum.innerHTML += row; }
-
         });
-
     }
-
-
-
-    // --- NUEVA FUNCIÓN PARA ACTUALIZAR LOS SELECTORES ---
 
     function updateBoxOptions(mode) {
-
         const type = mode === 'Salida' ? document.getElementById("typeSelectSalida").value : document.getElementById("typeSelectEntrada").value;
-
         const select = mode === 'Salida' ? document.getElementById("boxSelect") : document.getElementById("boxSelectAdd");
-
         
-
         select.innerHTML = "";
-
         
-
         inventory.forEach((item, index) => {
-
             const isF = item.id.startsWith("F");
-
             if ((type === "SERIEF" && isF) || (type === "NUM" && !isF)) {
-
                 const opt = document.createElement("option");
-
                 opt.value = index;
-
                 opt.textContent = `Caja ${item.id}`;
-
                 select.appendChild(opt);
-
             }
-
         });
-
     }
-
-
 
     function procesarSalida() {
-
         const index = document.getElementById("boxSelect").value;
-
         const qty = parseInt(document.getElementById("qtyInput").value);
-
         const ref = document.getElementById("inputReferencia").value.trim();
-
         const item = inventory[index];
-
-
 
         if (!item || isNaN(qty) || qty <= 0 || !ref) { alert("Complete todos los campos."); return; }
-
         if (qty > item.stock) { alert("Stock insuficiente."); return; }
 
-
-
         if(confirm(`¿Registrar salida de ${qty} piezas de la Caja ${item.id}?`)) {
-
             db.ref(`inventario/${index}`).update({ stock: item.stock - qty });
-
             db.ref('historial').push({ id: item.id, qty: `-${qty}`, ref: ref, time: new Date().toLocaleString() });
-
             document.getElementById("inputReferencia").value = "";
-
         }
-
     }
 
-
-
     function procesarEntrada() {
-
         const index = document.getElementById("boxSelectAdd").value;
-
         const qty = parseInt(document.getElementById("qtyAddInput").value);
-
         const item = inventory[index];
-
-
 
         if (!item || isNaN(qty) || qty <= 0) { alert("Cantidad no válida."); return; }
 
-
-
         if(confirm(`¿Confirmar entrada de ${qty} piezas a la Caja ${item.id}?`)) {
-
             db.ref(`inventario/${index}`).update({ stock: item.stock + qty });
-
             db.ref('historial').push({ id: item.id, qty: `+${qty}`, ref: "Entrada Stock", time: new Date().toLocaleString() });
-
         }
-
     }
-
-
 
     function renderHistory(histData) {
-
         const list = document.getElementById("historyList");
-
         if (!histData) { list.innerHTML = "Sin movimientos"; return; }
-
         const items = Object.values(histData).reverse();
-
         list.innerHTML = items.map(h => `<div class="history-item"><strong>Caja ${h.id}</strong> | ${h.qty} pzs<br><small>${h.time} - Ref: ${h.ref}</small></div>`).join("");
-
     }
-
-
 
     function toggleMenu() {
-
         document.getElementById("menuPanel").classList.toggle("active");
-
         document.getElementById("appWrapper").classList.toggle("compressed");
-
     }
-
-
 
     function toggleHistory() {
-
         const h = document.getElementById("historyContainer");
-
         h.style.display = h.style.display === "none" ? "block" : "none";
-
     }
-
-
 
     document.getElementById("searchInput").addEventListener("input", render);
 
-
-
-    function descargarPDF() {
-
+function descargarPDF() {
         const { jsPDF } = window.jspdf;
-
         const doc = new jsPDF();
-
         const totalCajas = inventory.length;
-
         const criticas = inventory.filter(i => i.stock < i.min).length;
-
         const optimas = totalCajas - criticas;
 
-
-
         doc.setFontSize(22);
-
         doc.setTextColor(177, 18, 38);
-
         doc.text("FILTROS Y SERVICIOS DE MEXICO", 14, 20);
-
         doc.setFontSize(16);
-
         doc.setTextColor(40, 40, 40);
-
         doc.text("Reporte de Inventario de Cajas", 14, 30);
-
         doc.setFontSize(10);
-
         doc.text(`Fecha: ${new Date().toLocaleString()}`, 14, 38);
-
         doc.line(14, 42, 196, 42);
 
-
-
         const filas = inventory.map(item => [
-
             `Caja ${item.id}`,
-
             TABLA_MEDIDAS[item.id] || "N/A",
-
             item.stock,
-
             `${item.min} / ${item.max}`,
-
             item.stock < item.min ? "REQUISICIÓN" : "ÓPTIMO"
-
         ]);
 
-
-
         doc.autoTable({
-
             startY: 85,
-
             head: [['ID Caja', 'Medida Técnica', 'Stock', 'Mín / Máx', 'Estado']],
-
             body: filas,
-
             theme: 'striped',
-
             headStyles: { fillColor: [177, 18, 38] }
-
         });
 
-
-
         doc.save(`Reporte_Filsa_${new Date().toLocaleDateString()}.pdf`);
-
     }
-
-
-
 </script>
-
 </body>
-
 </html>
 
+
+
+</html>
